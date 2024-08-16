@@ -1,9 +1,7 @@
 
 import streamlit as st
-import speech_recognition as sr
 from googletrans import Translator, LANGUAGES
 from gtts import gTTS
-from playsound import playsound
 import os
 import base64
 import random
@@ -62,10 +60,10 @@ st.markdown("""
     }
     </style>
     
-    <div class="main-title">🌍 Real-Time Speech Translator</div>
+    <div class="main-title">🌍 Real-Time Text Translator</div>
     <div class="marquee">
         <div class="marquee-content">
-            <strong>Translate your speech to another language in real-time!</strong>
+            <strong>Translate your text to another language!</strong>
         </div>
     </div>
 """, unsafe_allow_html=True) 
@@ -106,16 +104,12 @@ if os.path.exists(logo_path):
 else:
     st.sidebar.warning("Logo video not found. Please ensure 'Logo.mp4' is in the same directory as the script.") 
 
-recognizer = sr.Recognizer()
 translator = Translator()
 
 def get_supported_languages():
     return {lang: LANGUAGES[lang].capitalize() for lang in LANGUAGES}
 
 supported_languages = get_supported_languages()
-
-
-st.info("⚠️ This feature requires a microphone. Please ensure your browser has permission to access it.")
 
 st.sidebar.markdown("---")
 st.markdown("---")
@@ -188,47 +182,31 @@ st.sidebar.error(f"📚 {fact4}")
 st.sidebar.markdown("---")
 
 st.markdown("---")
-if st.button("🎙️ Start Recording"):
+
+input_text = st.text_area("Enter text to translate:")
+
+if st.button("🔄 Translate"):
     if input_language == target_language:
-        st.warning("Source and Target language cannot be the same!")
+        st.warning("⚠️ Source and Target language cannot be the same!")
     else:
-        if 'translation_results' in st.session_state:
-            del st.session_state.translation_results
-
-        st.session_state.translation_results = []
-
         try:
-            with sr.Microphone() as source:
-                st.markdown(" ")
-                with st.spinner("🎤 Recording... (Speak now), the recording will stop after 5 seconds of silence!"):
-                    audio = recognizer.listen(source, timeout=5, phrase_time_limit=15)
+            translation = translator.translate(input_text, src=input_language, dest=target_language)
+            translated_text = translation.text
 
-            st.write("✅ Recording finished.")
+            st.write(f"**Translation:** {translated_text}")
             st.markdown("---")
 
-            try:
-                transcript_text = recognizer.recognize_google(audio, language=input_language)
-                st.write(f"**Recognized Text:** {transcript_text}")
-                st.markdown("---") 
+            tts = gTTS(translated_text, lang=target_language)
+            tts.save("translated_audio.mp3")
 
-                translation = translator.translate(transcript_text, dest=target_language)
-                translated_text = translation.text
-
-                st.session_state.translation_results.append({
-                    "translation": translated_text,
-                    "error": None
-                })
-
-                if translated_text.strip():
-                    tts = gTTS(translated_text, lang=target_language)
-                    tts.save("translated_audio.mp3")
-
-                    playsound("translated_audio.mp3")
-
-            except sr.UnknownValueError:
-                st.warning("⚠️ Speech recognition could not understand the audio!")
-            except sr.RequestError as e:
-                st.error(f"Could not request results from speech recognition service; {e}")
+            # Create a download button for the audio
+            with open("translated_audio.mp3", "rb") as file:
+                btn = st.download_button(
+                    label="🔊 Download Audio",
+                    data=file,
+                    file_name="translation.mp3",
+                    mime="audio/mp3"
+                )
 
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
