@@ -2,5 +2,4 @@ streamlit
 SpeechRecognition
 googletrans==3.1.0a0
 gTTS
-playsound
-pyaudio
+playsound==1.2.2
